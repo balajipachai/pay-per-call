@@ -1,0 +1,3 @@
+This message is not a real train notice, it is just placeholder junk text
+used to test how the parser handles input with no recognizable structure
+at all — no date field, no train number, nothing Meera would trust.

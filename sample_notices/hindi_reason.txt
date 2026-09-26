@@ -1,0 +1,10 @@
+Date: {{TODAY}}
+Train Number/Name: 12626 / राजधानी एक्सप्रेस
+Scheduled Departure/Arrival: 08:15 AM
+Status: विलंबित
+कृपया ध्यान दें कि 12626 राजधानी एक्सप्रेस, जो पुणे से नई दिल्ली के लिए रवाना होनी थी,
+सिग्नल की खराबी के कारण फिलहाल 45 मिनट की देरी से चल रही है। यह सूचना यात्रियों की सुविधा
+के लिए स्टेशन प्रशासन द्वारा जारी की गई है ताकि वे अपनी यात्रा की योजना बना सकें।
+Please be informed that the 12626 New Delhi Express scheduled to depart from Pune to New Delhi is currently running 45 minutes behind schedule due to signalling malfunction.
+Estimated Departure Time: 09:00 AM
+Platform Number: 3

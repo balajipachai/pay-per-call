@@ -1,0 +1,5 @@
+Date: {{TODAY}}
+Train Number/Name: 12626 / TGV Lyria
+Ceci est un avis retardé pour le train numéro 12626 partant de Paris vers Lyon,
+actuellement en retard de quarante-cinq minutes en raison d'un problème de signalisation.
+Nous nous excusons pour la gêne occasionnée.

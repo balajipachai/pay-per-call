@@ -1,0 +1,7 @@
+Date: {{TODAY}}
+Train Number/Name: New Delhi Express
+Scheduled Departure/Arrival: 08:15 AM
+Status: Delayed
+Please be informed that the New Delhi Express scheduled to depart from Pune to New Delhi is currently running 45 minutes behind schedule due to signalling malfunction.
+Estimated Departure Time: 09:00 AM
+Platform Number: 3
