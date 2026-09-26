@@ -79,6 +79,20 @@ testnet USDC (get some from the [Circle faucet](https://faucet.circle.com/)).
 python3 -m demo.client
 ```
 
+### Verified live
+
+Every route/scenario below has actually been run against a live server with
+a funded Base Sepolia testnet wallet — these are real on-chain settlements,
+not just wiring checks:
+
+| Call | Result | Transaction |
+|---|---|---|
+| `/parse`, clean notice | charged $0.001 | [`0xfd2a8b2e...96c59d74`](https://sepolia.basescan.org/tx/0xfd2a8b2ef9643b928af32cd5724db6226f0b517611cfcec54eea303f96c59d74) |
+| `/parse`, stale notice | 422, not charged | — |
+| `/parse/bulk`, 1 notice | charged $0.0005 (`amount: 500`, not the $0.005 ceiling) | [`0xc0a2e2f6...082742ee4`](https://sepolia.basescan.org/tx/0xc0a2e2f6c2bb2b331999e48778dae4d422bcce7f0bd405bcfb1a85e082742ee4) |
+| `/parse/bulk`, mixed batch | 422, whole batch not charged | — |
+| Permit2 approval (one-time, required by the `upto` scheme, unlike `exact`'s gasless flow) | confirmed on-chain | [`0xdf51d30b...1138dba9b`](https://sepolia.basescan.org/tx/0xdf51d30bcb7eafabd4aed62e9e89b0cf64b0ff26de80f98991088cd1138dba9b) |
+
 ## Tests
 
 Pure parser/validation logic, no network or wallet required:
