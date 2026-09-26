@@ -9,7 +9,7 @@ from x402.mechanisms.evm.exact import ExactEvmServerScheme
 from x402.server import x402ResourceServer
 
 from app.parser import NoticeRejected, parse_notice
-from app.schemas import ParseRequest
+from app.schemas import ParsedNotice, ParseRequest
 
 load_dotenv()
 
@@ -46,7 +46,7 @@ async def health():
     return {"status": "ok"}
 
 
-@app.post("/parse")
+@app.post("/parse", response_model=ParsedNotice)
 async def parse(payload: ParseRequest):
     try:
         parsed = parse_notice(payload.notice_text)
