@@ -1,13 +1,16 @@
 import pytest
 
 from app.parser import NoticeRejected, parse_notice
+from app.schemas import BulkParseRequest, ParseRequest
 from demo.sample_notices import (
     CLEAN_NOTICE,
+    GARBLED_NOTICE,
     HINDI_NOTICE,
     REJECTED_MISSING_TRAIN_NUMBER,
     REJECTED_PAST_DATE,
     REJECTED_WRONG_LANGUAGE,
 )
+from pydantic import ValidationError
 
 
 def test_clean_notice_parses():
@@ -49,3 +52,18 @@ def test_unknown_station_rejected():
     bad_station_notice = CLEAN_NOTICE.replace("Pune", "Nonexistentville")
     with pytest.raises(NoticeRejected, match="Unrecognized station"):
         parse_notice(bad_station_notice)
+
+
+def test_garbled_notice_rejected():
+    with pytest.raises(NoticeRejected, match="Date"):
+        parse_notice(GARBLED_NOTICE)
+
+
+def test_oversized_notice_rejected_by_schema():
+    with pytest.raises(ValidationError):
+        ParseRequest(notice_text="A" * 8001)
+
+
+def test_bulk_request_caps_batch_size():
+    with pytest.raises(ValidationError):
+        BulkParseRequest(notices=["x"] * 11)
