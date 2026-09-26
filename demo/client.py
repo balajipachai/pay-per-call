@@ -21,18 +21,25 @@ from x402.client import x402Client
 from x402.http.clients.httpx import x402HttpxClient
 from x402.mechanisms.evm import EthAccountSigner
 from x402.mechanisms.evm.exact import register_exact_evm_client
+from x402.mechanisms.evm.upto import UptoEvmClientScheme
 
 from demo.sample_notices import CLEAN_NOTICE, REJECTED_PAST_DATE
 
 load_dotenv()
 
 SERVER_URL = os.environ.get("PARSER_SERVER_URL", "http://127.0.0.1:8642")
+NETWORK = os.environ.get("X402_NETWORK", "eip155:84532")
 
 
 def build_client() -> x402Client:
+    """/parse pays via the exact scheme; /parse/bulk pays via the upto
+    scheme (authorize a ceiling, settle for what the batch actually cost).
+    Both need to be registered for the client to pay either route."""
     account = Account.from_key(os.environ["EVM_PRIVATE_KEY"])
+    signer = EthAccountSigner(account)
     client = x402Client()
-    register_exact_evm_client(client, EthAccountSigner(account))
+    register_exact_evm_client(client, signer)
+    client.register(NETWORK, UptoEvmClientScheme(signer))
     return client
 
 
@@ -61,7 +68,7 @@ async def call_parse_bulk(notices: list[str], label: str) -> None:
         print(f"--- Paid: POST /parse/bulk — {label} ---")
         print(f"HTTP {response.status_code}")
         if response.status_code == 200:
-            print("Charged $0.005. Parsed:", response.json())
+            print(f"Charged $0.0005 x {len(notices)} notices. Parsed:", response.json())
         else:
             print("Not charged (whole batch rejected). Server said:", response.json())
         print()

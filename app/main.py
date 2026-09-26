@@ -1,11 +1,12 @@
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from x402.http import FacilitatorConfig, HTTPFacilitatorClient, PaymentOption
-from x402.http.middleware.fastapi import PaymentMiddlewareASGI
+from x402.http.middleware.fastapi import PaymentMiddlewareASGI, set_settlement_overrides
 from x402.http.types import RouteConfig
 from x402.mechanisms.evm.exact import ExactEvmServerScheme
+from x402.mechanisms.evm.upto import UptoEvmServerScheme
 from x402.server import x402ResourceServer
 
 from app.parser import NoticeRejected, parse_notice
@@ -17,11 +18,21 @@ load_dotenv()
 NETWORK = os.environ.get("X402_NETWORK", "eip155:84532")  # Base Sepolia
 PAY_TO_ADDRESS = os.environ["X402_PAY_TO_ADDRESS"]
 PRICE = os.environ.get("X402_PRICE", "$0.001")
-BULK_PRICE = os.environ.get("X402_BULK_PRICE", "$0.005")
 FACILITATOR_URL = os.environ.get("X402_FACILITATOR_URL", "https://x402.org/facilitator")
 
+# Bulk parsing uses x402's `upto` scheme: the buyer authorizes a ceiling
+# (enough for a full 10-notice batch), and the handler settles only for the
+# notices actually in the batch via set_settlement_overrides below — so a
+# 2-notice bulk call costs 2x the per-notice rate, not the 10-notice ceiling.
+BULK_PRICE_PER_NOTICE_ATOMIC = int(os.environ.get("X402_BULK_PRICE_PER_NOTICE_ATOMIC", "500"))  # $0.0005
+BULK_PRICE_CEILING = os.environ.get("X402_BULK_PRICE_CEILING", "$0.005")  # 10 notices at $0.0005
+
 facilitator_client = HTTPFacilitatorClient(FacilitatorConfig(url=FACILITATOR_URL))
-resource_server = x402ResourceServer(facilitator_client).register(NETWORK, ExactEvmServerScheme())
+resource_server = (
+    x402ResourceServer(facilitator_client)
+    .register(NETWORK, ExactEvmServerScheme())
+    .register(NETWORK, UptoEvmServerScheme())
+)
 
 routes = {
     "POST /parse": RouteConfig(
@@ -39,14 +50,15 @@ routes = {
     ),
     "POST /parse/bulk": RouteConfig(
         accepts=PaymentOption(
-            scheme="exact",
+            scheme="upto",
             pay_to=PAY_TO_ADDRESS,
-            price=BULK_PRICE,
+            price=BULK_PRICE_CEILING,
             network=NETWORK,
         ),
         description=(
-            "Parse up to 10 notices in one call. All-or-nothing: if any notice "
-            "in the batch can't be read, nothing in the batch is charged."
+            "Parse up to 10 notices in one call, billed per notice in the batch "
+            "(cheaper per-notice than /parse). All-or-nothing: if any notice in "
+            "the batch can't be read, nothing in the batch is charged."
         ),
         mime_type="application/json",
     ),
@@ -81,7 +93,7 @@ async def parse(payload: ParseRequest):
 
 
 @app.post("/parse/bulk", response_model=BulkParseResponse)
-async def parse_bulk(payload: BulkParseRequest):
+async def parse_bulk(payload: BulkParseRequest, response: Response):
     results: list[ParsedNotice] = []
     errors: list[dict] = []
     for index, notice_text in enumerate(payload.notices):
@@ -96,4 +108,9 @@ async def parse_bulk(payload: BulkParseRequest):
         # the same "nobody pays for a notice she couldn't read" rule as
         # /parse, just applied to the batch as a unit.
         raise HTTPException(status_code=422, detail=errors)
+
+    # Settle only for the notices actually in this batch, not the ceiling
+    # the buyer authorized — a 2-notice call costs 2x the per-notice rate.
+    actual_atomic = BULK_PRICE_PER_NOTICE_ATOMIC * len(results)
+    set_settlement_overrides(response, {"amount": str(actual_atomic)})
     return BulkParseResponse(results=results)

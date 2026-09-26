@@ -12,8 +12,13 @@ the call costs nothing.
 | Route | Price | What it does |
 |---|---|---|
 | `GET /notices/samples` | free | Bundled example notices (`sample_notices/`), for trying the API before paying |
-| `POST /parse` | $0.001 testnet USDC | Parse one notice |
-| `POST /parse/bulk` | $0.005 testnet USDC | Parse up to 10 notices in one call — all-or-nothing: if any notice in the batch can't be read, the whole batch is rejected and nothing is charged |
+| `POST /parse` | $0.001 testnet USDC (`exact` scheme) | Parse one notice |
+| `POST /parse/bulk` | $0.0005/notice, up to 10/call, `upto` scheme | Parse a batch of notices, billed per notice actually in the batch (cheaper per-notice than `/parse`) — all-or-nothing: if any notice in the batch can't be read, the whole batch is rejected and nothing is charged |
+
+`/parse/bulk` uses x402's `upto` scheme: the buyer authorizes a ceiling
+($0.005, enough for 10 notices), and `app/main.py` settles only for the
+notices actually in the batch via `set_settlement_overrides` — a 2-notice
+call costs $0.001, not the $0.005 ceiling.
 
 ## How the refund works
 
