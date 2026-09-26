@@ -28,7 +28,6 @@ from demo.sample_notices import CLEAN_NOTICE, REJECTED_PAST_DATE
 load_dotenv()
 
 SERVER_URL = os.environ.get("PARSER_SERVER_URL", "http://127.0.0.1:8642")
-NETWORK = os.environ.get("X402_NETWORK", "eip155:84532")
 
 
 def build_client() -> x402Client:
@@ -39,7 +38,13 @@ def build_client() -> x402Client:
     signer = EthAccountSigner(account)
     client = x402Client()
     register_exact_evm_client(client, signer)
-    client.register(NETWORK, UptoEvmClientScheme(signer))
+    # Register under the same "eip155:*" wildcard key exact uses above —
+    # x402Client._select_requirements_v2 does an exact-match lookup on the
+    # network string first and only falls back to wildcard patterns if no
+    # literal key exists, so registering "upto" under the literal network
+    # (e.g. "eip155:84532") would create a second dict entry that shadows
+    # the wildcard one and hides "exact" from that lookup entirely.
+    client.register("eip155:*", UptoEvmClientScheme(signer))
     return client
 
 
